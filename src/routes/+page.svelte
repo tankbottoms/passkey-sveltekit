@@ -196,7 +196,6 @@
 					{status === 'loading' ? 'AUTHENTICATING...' : 'AUTHENTICATE'}
 				</button>
 
-				{#if data.isDev}
 					<div class="register-section mt-lg">
 						<div class="panel">
 							<div class="panel-header">ENROLL NEW PASSKEY</div>
@@ -215,7 +214,6 @@
 							</div>
 						</div>
 					</div>
-				{/if}
 			</div>
 		</div>
 	{:else}
@@ -278,7 +276,6 @@
 				</div>
 			</div>
 
-			{#if data.isDev}
 				<!-- Register Another -->
 				<div class="panel mt-md">
 					<div class="panel-header">ENROLL ANOTHER PASSKEY</div>
@@ -297,6 +294,7 @@
 					</div>
 				</div>
 
+				{#if data.isDev}
 				<!-- Export -->
 				<div class="panel mt-md">
 					<div class="panel-header">DEPLOY TO VERCEL</div>
