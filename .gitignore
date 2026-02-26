@@ -6,3 +6,4 @@ build/
 data/
 .DS_Store
 .env
+.vercel

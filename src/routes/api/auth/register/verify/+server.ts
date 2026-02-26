@@ -1,12 +1,10 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { verifyRegistrationResponse } from '@simplewebauthn/server';
-import { dev } from '$app/environment';
 import { saveCredential } from '$lib/server/store.js';
 import { createSession } from '$lib/server/session.js';
 
 export const POST: RequestHandler = async ({ request, cookies, url }) => {
-	if (!dev) throw error(403, 'Registration is only available in development');
 
 	const body = await request.json();
 

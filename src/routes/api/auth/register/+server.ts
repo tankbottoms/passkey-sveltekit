@@ -6,7 +6,6 @@ import { getUserByUsername, createUser, getCredentialsByUser } from '$lib/server
 import { randomBytes } from 'crypto';
 
 export const POST: RequestHandler = async ({ request, cookies, url }) => {
-	if (!dev) throw error(403, 'Registration is only available in development');
 
 	const { username } = await request.json();
 	if (!username || typeof username !== 'string' || username.trim().length < 1) {
