@@ -27,6 +27,7 @@
 	},
 	"dependencies": {
 		"@simplewebauthn/browser": "^13.2.2",
-		"@simplewebauthn/server": "^13.2.3"
+		"@simplewebauthn/server": "^13.2.3",
+		"@vercel/blob": "^2.3.0"
 	}
 }

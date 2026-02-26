@@ -1,8 +1,9 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { verifyAuthenticationResponse } from '@simplewebauthn/server';
-import { getCredential, updateCounter } from '$lib/server/store.js';
+import { getCredential, updateCounter, getUser } from '$lib/server/store.js';
 import { createSession } from '$lib/server/session.js';
+import { log } from '$lib/server/logger.js';
 
 export const POST: RequestHandler = async ({ request, cookies, url }) => {
 	const body = await request.json();
@@ -48,8 +49,14 @@ export const POST: RequestHandler = async ({ request, cookies, url }) => {
 		return json({ verified: false });
 	}
 
-	updateCounter(passkey.id, verification.authenticationInfo.newCounter);
+	await updateCounter(passkey.id, verification.authenticationInfo.newCounter);
 	createSession(cookies, passkey.userId);
+
+	const user = getUser(passkey.userId);
+	log(url.hostname, 'info', `User authenticated: ${user?.username ?? passkey.userId}`, {
+		path: '/api/auth/login/verify',
+		metadata: { userId: passkey.userId, credentialId: passkey.id }
+	});
 
 	return json({ verified: true, userId: passkey.userId });
 };

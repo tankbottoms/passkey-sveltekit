@@ -26,6 +26,6 @@ export const DELETE: RequestHandler = async ({ request, locals }) => {
 	const { id } = await request.json();
 	if (!id) throw error(400, 'Credential ID required');
 
-	deleteCredential(id);
+	await deleteCredential(id);
 	return json({ ok: true });
 };

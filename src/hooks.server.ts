@@ -1,8 +1,10 @@
 import type { Handle } from '@sveltejs/kit';
 import { getSession } from '$lib/server/session.js';
-import { getUser } from '$lib/server/store.js';
+import { getUser, initStore } from '$lib/server/store.js';
 
 export const handle: Handle = async ({ event, resolve }) => {
+	await initStore();
+
 	const session = getSession(event.cookies);
 
 	if (session) {

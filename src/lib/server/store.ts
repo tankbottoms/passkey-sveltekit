@@ -1,6 +1,12 @@
 import { dev } from '$app/environment';
 import { isoBase64URL } from '@simplewebauthn/server/helpers';
 import { enrolledUsers, enrolledCredentials } from './enrolled-data.js';
+import {
+	loadUsers,
+	loadCredentials,
+	persistUsers,
+	persistCredentials
+} from './blob-store.js';
 
 export interface User {
 	id: string;
@@ -20,14 +26,14 @@ export interface StoredCredential {
 	lastUsedAt: number | null;
 }
 
-// -- In-memory store (production) --
-// Seeded from enrolled-data.ts, allows runtime additions (lost on cold start)
+// -- In-memory store --
 
 const memUsers = new Map<string, User>();
 const memCredentials = new Map<string, StoredCredential>();
+let initialized = false;
+let initPromise: Promise<void> | null = null;
 
-function seedMemory() {
-	if (memUsers.size > 0 || memCredentials.size > 0) return;
+function seedFromEnrolled() {
 	for (const u of enrolledUsers) {
 		memUsers.set(u.id, { ...u });
 	}
@@ -45,6 +51,39 @@ function seedMemory() {
 			lastUsedAt: null
 		});
 	}
+}
+
+function seedMemory() {
+	if (initialized || memUsers.size > 0 || memCredentials.size > 0) return;
+	seedFromEnrolled();
+}
+
+// -- Blob store initialization (production) --
+
+export async function initStore(): Promise<void> {
+	if (dev || initialized) return;
+	if (initPromise) return initPromise;
+
+	initPromise = (async () => {
+		try {
+			const [users, creds] = await Promise.all([loadUsers(), loadCredentials()]);
+			if (users.length > 0 || creds.length > 0) {
+				for (const u of users) memUsers.set(u.id, u);
+				for (const c of creds) memCredentials.set(c.id, c);
+			} else {
+				seedFromEnrolled();
+				await Promise.all([
+					persistUsers([...memUsers.values()]),
+					persistCredentials([...memCredentials.values()])
+				]).catch(() => {});
+			}
+		} catch {
+			seedFromEnrolled();
+		}
+		initialized = true;
+	})();
+
+	return initPromise;
 }
 
 // -- SQLite helpers (dev only) --
@@ -69,7 +108,7 @@ function rowToCredential(row: Record<string, unknown>): StoredCredential {
 	};
 }
 
-// -- Users --
+// -- Users (reads) --
 
 export function getUser(id: string): User | null {
 	if (dev) {
@@ -94,7 +133,17 @@ export function getUserByUsername(username: string): User | null {
 	return null;
 }
 
-export function createUser(id: string, username: string): User {
+export function getAllUsers(): User[] {
+	if (dev) {
+		return db().prepare('SELECT id, username FROM users').all() as User[];
+	}
+	seedMemory();
+	return [...memUsers.values()];
+}
+
+// -- Users (writes) --
+
+export async function createUser(id: string, username: string): Promise<User> {
 	if (dev) {
 		db().prepare('INSERT INTO users (id, username) VALUES (?, ?)').run(id, username);
 		return { id, username };
@@ -102,10 +151,13 @@ export function createUser(id: string, username: string): User {
 	seedMemory();
 	const user = { id, username };
 	memUsers.set(id, user);
+	try {
+		await persistUsers([...memUsers.values()]);
+	} catch { /* memory updated, blob write failed */ }
 	return user;
 }
 
-// -- Credentials --
+// -- Credentials (reads) --
 
 export function getCredential(id: string): StoredCredential | null {
 	if (dev) {
@@ -138,15 +190,9 @@ export function getAllCredentials(): StoredCredential[] {
 	return [...memCredentials.values()];
 }
 
-export function getAllUsers(): User[] {
-	if (dev) {
-		return db().prepare('SELECT id, username FROM users').all() as User[];
-	}
-	seedMemory();
-	return [...memUsers.values()];
-}
+// -- Credentials (writes) --
 
-export function saveCredential(cred: {
+export async function saveCredential(cred: {
 	id: string;
 	userId: string;
 	webAuthnUserId: string;
@@ -155,7 +201,7 @@ export function saveCredential(cred: {
 	deviceType: string;
 	backedUp: boolean;
 	transports: string[];
-}): void {
+}): Promise<void> {
 	if (dev) {
 		db()
 			.prepare(
@@ -181,9 +227,12 @@ export function saveCredential(cred: {
 		createdAt: Math.floor(Date.now() / 1000),
 		lastUsedAt: null
 	});
+	try {
+		await persistCredentials([...memCredentials.values()]);
+	} catch { /* memory updated, blob write failed */ }
 }
 
-export function updateCounter(credentialId: string, newCounter: number): void {
+export async function updateCounter(credentialId: string, newCounter: number): Promise<void> {
 	if (dev) {
 		db()
 			.prepare('UPDATE credentials SET counter = ?, last_used_at = unixepoch() WHERE id = ?')
@@ -196,13 +245,19 @@ export function updateCounter(credentialId: string, newCounter: number): void {
 		cred.counter = newCounter;
 		cred.lastUsedAt = Math.floor(Date.now() / 1000);
 	}
+	try {
+		await persistCredentials([...memCredentials.values()]);
+	} catch { /* memory updated, blob write failed */ }
 }
 
-export function deleteCredential(credentialId: string): void {
+export async function deleteCredential(credentialId: string): Promise<void> {
 	if (dev) {
 		db().prepare('DELETE FROM credentials WHERE id = ?').run(credentialId);
 		return;
 	}
 	seedMemory();
 	memCredentials.delete(credentialId);
+	try {
+		await persistCredentials([...memCredentials.values()]);
+	} catch { /* memory updated, blob write failed */ }
 }

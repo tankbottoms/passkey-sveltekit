@@ -18,7 +18,7 @@ export const POST: RequestHandler = async ({ request, cookies, url }) => {
 	let user = getUserByUsername(trimmed);
 	if (!user) {
 		const id = randomBytes(16).toString('hex');
-		user = createUser(id, trimmed);
+		user = await createUser(id, trimmed);
 	}
 
 	// Get existing credentials to exclude

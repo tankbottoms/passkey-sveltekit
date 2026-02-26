@@ -17,9 +17,10 @@
 
 <nav class="site-nav">
 	<div class="nav-inner">
-		<span class="nav-brand">PASSKEY//GATE</span>
+		<a href="/" class="nav-brand">PASSKEY//GATE</a>
 		<div class="nav-right">
 			{#if data.user}
+				<a href="/logs" class="nav-link">LOGS</a>
 				<span class="nav-user">{data.user.username}</span>
 				<span class="badge badge-success">AUTHENTICATED</span>
 			{:else}
@@ -60,6 +61,21 @@
 		font-weight: 700;
 		font-size: 0.9rem;
 		letter-spacing: 0.1em;
+		color: var(--color-text);
+		text-decoration: none !important;
+	}
+
+	.nav-link {
+		font-family: var(--font-mono);
+		font-size: 0.75rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: var(--color-text-muted);
+		text-decoration: none;
+	}
+
+	.nav-link:hover {
 		color: var(--color-text);
 		text-decoration: none;
 	}

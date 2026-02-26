@@ -3,6 +3,7 @@ import type { RequestHandler } from './$types';
 import { verifyRegistrationResponse } from '@simplewebauthn/server';
 import { saveCredential } from '$lib/server/store.js';
 import { createSession } from '$lib/server/session.js';
+import { log } from '$lib/server/logger.js';
 
 export const POST: RequestHandler = async ({ request, cookies, url }) => {
 
@@ -41,7 +42,7 @@ export const POST: RequestHandler = async ({ request, cookies, url }) => {
 
 	const { credential, credentialDeviceType, credentialBackedUp } = verification.registrationInfo;
 
-	saveCredential({
+	await saveCredential({
 		id: credential.id,
 		userId,
 		webAuthnUserId: body.response?.userHandle ?? userId,
@@ -54,6 +55,11 @@ export const POST: RequestHandler = async ({ request, cookies, url }) => {
 
 	// Auto-login after registration
 	createSession(cookies, userId);
+
+	log(url.hostname, 'info', `New passkey registered for user ${userId}`, {
+		path: '/api/auth/register/verify',
+		metadata: { userId, credentialId: credential.id, deviceType: credentialDeviceType }
+	});
 
 	return json({ verified: true });
 };
