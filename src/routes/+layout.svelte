@@ -93,6 +93,15 @@
 		gap: var(--spacing-sm);
 	}
 
+	/* Override touch target min-height inside nav to prevent misalignment */
+	.nav-inner :global(a),
+	.nav-inner :global(button),
+	.nav-inner :global(span) {
+		min-height: auto;
+		line-height: 1;
+		vertical-align: middle;
+	}
+
 	.nav-user {
 		font-size: 0.75rem;
 		font-weight: 600;
