@@ -30,12 +30,16 @@ export interface LogEntry {
 
 // -- Internal helpers --
 
+function blobToken(): string {
+	return process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_READ_WRITE_TOKEN || '';
+}
+
 const authHeaders = () => ({
-	Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_READ_WRITE_TOKEN}`
+	Authorization: `Bearer ${blobToken()}`
 });
 
 async function fetchBlobJson<T>(prefix: string): Promise<T | null> {
-	const result = await list({ prefix });
+	const result = await list({ prefix, token: blobToken() });
 	if (result.blobs.length === 0) return null;
 	const response = await fetch(result.blobs[0].url, { headers: authHeaders() });
 	if (!response.ok) return null;
@@ -46,7 +50,8 @@ async function putBlobJson(pathname: string, data: unknown): Promise<string> {
 	const { url } = await put(pathname, JSON.stringify(data), {
 		access: 'private',
 		addRandomSuffix: false,
-		contentType: 'application/json'
+		contentType: 'application/json',
+		token: blobToken()
 	});
 	return url;
 }
@@ -114,7 +119,8 @@ export async function appendLog(entry: Omit<LogEntry, 'id'>): Promise<LogEntry> 
 	const date = entry.timestamp.slice(0, 10);
 	await put(`logs/${entry.site}/${date}/${id}.json`, JSON.stringify(full), {
 		access: 'private',
-		contentType: 'application/json'
+		contentType: 'application/json',
+		token: blobToken()
 	});
 	return full;
 }
@@ -136,7 +142,8 @@ export async function listLogs(options?: {
 	const result = await list({
 		prefix,
 		limit: options?.limit ?? 50,
-		cursor: options?.cursor
+		cursor: options?.cursor,
+		token: blobToken()
 	});
 
 	const entries: LogEntry[] = [];
@@ -165,6 +172,6 @@ export async function listLogs(options?: {
 }
 
 export async function listSites(): Promise<string[]> {
-	const result = await list({ prefix: 'logs/', mode: 'folded' });
+	const result = await list({ prefix: 'logs/', mode: 'folded', token: blobToken() });
 	return (result.folders ?? []).map((f) => f.replace('logs/', '').replace(/\/$/, '')).filter(Boolean);
 }
