@@ -54,7 +54,7 @@
 	}
 
 	.nav-inner {
-		max-width: 640px;
+		max-width: 800px;
 		margin: 0 auto;
 		padding: 0 var(--spacing-lg);
 		display: flex;
@@ -137,21 +137,32 @@
 	}
 
 	@media (max-width: 480px) {
+		.nav-inner {
+			padding: 0 var(--spacing-sm);
+		}
+
 		.nav-brand {
-			font-size: 0.75rem;
+			font-size: 0.7rem;
+			letter-spacing: 0.05em;
+			flex-shrink: 0;
 		}
 
 		.nav-right {
-			gap: 0.4rem;
+			gap: 0.35rem;
 		}
 
 		.nav-link, .nav-user, .nav-status {
-			font-size: 0.65rem;
+			font-size: 0.6rem;
+			letter-spacing: 0;
 		}
 
 		:global(.nav-right .badge) {
-			font-size: 0.55rem;
-			padding: 0.1rem 0.25rem;
+			font-size: 0.5rem;
+			padding: 0.1rem 0.2rem;
+		}
+
+		.theme-toggle {
+			font-size: 0.6rem;
 		}
 	}
 </style>

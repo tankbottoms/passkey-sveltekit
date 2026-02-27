@@ -330,5 +330,31 @@
 			margin-left: 0;
 			width: 100%;
 		}
+
+		.logs-header button,
+		.filter-row button,
+		.log-panel-body > button {
+			border: none;
+			box-shadow: none;
+			background: transparent;
+			color: var(--color-text-muted);
+			padding: 0.3rem 0.5rem;
+			min-height: auto;
+		}
+
+		.logs-header button:hover,
+		.filter-row button:hover,
+		.log-panel-body > button:hover {
+			color: var(--color-text);
+			box-shadow: none;
+			transform: none;
+		}
+
+		.logs-header button:active,
+		.filter-row button:active,
+		.log-panel-body > button:active {
+			box-shadow: none;
+			transform: none;
+		}
 	}
 </style>
