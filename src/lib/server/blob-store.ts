@@ -30,10 +30,14 @@ export interface LogEntry {
 
 // -- Internal helpers --
 
+const authHeaders = () => ({
+	Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`
+});
+
 async function fetchBlobJson<T>(prefix: string): Promise<T | null> {
 	const result = await list({ prefix });
 	if (result.blobs.length === 0) return null;
-	const response = await fetch(result.blobs[0].downloadUrl);
+	const response = await fetch(result.blobs[0].url, { headers: authHeaders() });
 	if (!response.ok) return null;
 	return response.json() as Promise<T>;
 }
@@ -138,7 +142,7 @@ export async function listLogs(options?: {
 	const entries: LogEntry[] = [];
 	const fetches = result.blobs.map(async (blob) => {
 		try {
-			const resp = await fetch(blob.downloadUrl);
+			const resp = await fetch(blob.url, { headers: authHeaders() });
 			if (resp.ok) return (await resp.json()) as LogEntry;
 		} catch {
 			// skip malformed
