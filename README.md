@@ -12,7 +12,9 @@ Passwordless authentication using WebAuthn passkeys, built with SvelteKit. Suppo
 - Cross-platform support (Touch ID, Face ID, Windows Hello, security keys)
 - Stateless session management (HMAC-signed cookies)
 - Centralized credential and log storage via Vercel Blob
-- Event logging for all auth actions (enrollment, login, logout, failures)
+- Server-side request logging (all page/API requests)
+- Client-side event telemetry (page views, auth flows, interactions)
+- Log viewer dashboard at `/logs` with client event badges and device info
 - Dual deployment: Vercel + Cloudflare Workers from the same codebase
 
 ## Quick Start
@@ -87,18 +89,34 @@ See [docs/CLOUDFLARE_SETUP.md](docs/CLOUDFLARE_SETUP.md) for full setup instruct
 
 ```
 src/
-  lib/server/
-    blob-store.ts    # Vercel Blob persistence (users, credentials, logs)
-    session.ts       # HMAC-signed cookie sessions
-    store.ts         # In-memory store with Blob sync
-    logger.ts        # Event logger -> Blob storage
+  lib/
+    event-logger.ts    # Client-side event tracker (session ID, UA parsing, buffered flush)
+    server/
+      blob-store.ts    # Vercel Blob persistence (users, credentials, logs)
+      session.ts       # HMAC-signed cookie sessions
+      store.ts         # In-memory store with Blob sync
+      logger.ts        # Server-side request logger -> Blob storage
   routes/
-    +page.svelte     # Main passkey UI
-    api/auth/        # Registration, login, logout endpoints
-    api/credentials/ # Credential management
-    api/logs/        # Log viewer API
-    logs/            # Log dashboard
+    +layout.svelte     # Nav, theme, event logger init
+    +page.svelte       # Main passkey UI with event tracking
+    api/auth/          # Registration, login, logout endpoints
+    api/credentials/   # Credential management
+    api/events/        # Client-side event ingest endpoint
+    api/logs/          # Log viewer API
+    logs/              # Log dashboard with client event badges
 ```
+
+## Client-Side Event Telemetry
+
+The app tracks user interactions client-side and posts them to `/api/events`, which writes to the same Vercel Blob log store used by server-side request logging.
+
+**Tracked events:** `page_view`, `auth_click`, `auth_success`, `auth_error`, `enroll_gate_unlock`, `enroll_click`, `enroll_success`, `enroll_error`, `logout`, `credential_delete`
+
+**Device context:** Browser, OS, device type, screen size, language (parsed from User-Agent)
+
+**Buffering:** Events queue in memory, flush every 10 seconds or on page hide via `navigator.sendBeacon`. Failures are silently dropped.
+
+Client events appear in the `/logs` viewer with a `[CLIENT]` badge and device info.
 
 ## License
 
