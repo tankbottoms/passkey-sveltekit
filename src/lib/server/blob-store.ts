@@ -33,14 +33,14 @@ export interface LogEntry {
 async function fetchBlobJson<T>(prefix: string): Promise<T | null> {
 	const result = await list({ prefix });
 	if (result.blobs.length === 0) return null;
-	const response = await fetch(result.blobs[0].url);
+	const response = await fetch(result.blobs[0].downloadUrl);
 	if (!response.ok) return null;
 	return response.json() as Promise<T>;
 }
 
 async function putBlobJson(pathname: string, data: unknown): Promise<string> {
 	const { url } = await put(pathname, JSON.stringify(data), {
-		access: 'public',
+		access: 'private',
 		addRandomSuffix: false,
 		contentType: 'application/json'
 	});
@@ -109,7 +109,7 @@ export async function appendLog(entry: Omit<LogEntry, 'id'>): Promise<LogEntry> 
 	const full: LogEntry = { id, ...entry };
 	const date = entry.timestamp.slice(0, 10);
 	await put(`logs/${entry.site}/${date}/${id}.json`, JSON.stringify(full), {
-		access: 'public',
+		access: 'private',
 		contentType: 'application/json'
 	});
 	return full;
@@ -138,7 +138,7 @@ export async function listLogs(options?: {
 	const entries: LogEntry[] = [];
 	const fetches = result.blobs.map(async (blob) => {
 		try {
-			const resp = await fetch(blob.url);
+			const resp = await fetch(blob.downloadUrl);
 			if (resp.ok) return (await resp.json()) as LogEntry;
 		} catch {
 			// skip malformed
