@@ -31,7 +31,7 @@
 				<span class="nav-user">{data.user.username}</span>
 				<span class="badge badge-success">AUTHENTICATED</span>
 			{:else}
-				<span class="badge badge-warning">LOCKED</span>
+				<span class="nav-status">LOCKED</span>
 			{/if}
 			<button class="theme-toggle" onclick={toggleTheme} title="Toggle theme">
 				{isDarkMode() ? 'LIGHT' : 'DARK'}
@@ -101,13 +101,57 @@
 		color: var(--color-text-muted);
 	}
 
+	.nav-status {
+		font-size: 0.7rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: var(--color-text-muted);
+	}
+
 	.theme-toggle {
 		font-size: 0.65rem;
-		padding: 0.25rem 0.5rem;
-		box-shadow: 1px 1px 0px var(--color-shadow);
+		padding: 0.2rem 0.4rem;
+		border: none;
+		box-shadow: none;
+		background: transparent;
+		color: var(--color-text-muted);
+		min-height: auto;
+		font-weight: 600;
+		letter-spacing: 0.05em;
+	}
+
+	.theme-toggle:hover {
+		color: var(--color-text);
+		box-shadow: none;
+		transform: none;
+	}
+
+	.theme-toggle:active {
+		box-shadow: none;
+		transform: none;
 	}
 
 	.site-main {
 		padding: var(--spacing-xl) 0;
+	}
+
+	@media (max-width: 480px) {
+		.nav-brand {
+			font-size: 0.75rem;
+		}
+
+		.nav-right {
+			gap: 0.4rem;
+		}
+
+		.nav-link, .nav-user, .nav-status {
+			font-size: 0.65rem;
+		}
+
+		:global(.nav-right .badge) {
+			font-size: 0.55rem;
+			padding: 0.1rem 0.25rem;
+		}
 	}
 </style>
