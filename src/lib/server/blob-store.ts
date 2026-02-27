@@ -31,7 +31,7 @@ export interface LogEntry {
 // -- Internal helpers --
 
 const authHeaders = () => ({
-	Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`
+	Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_READ_WRITE_TOKEN}`
 });
 
 async function fetchBlobJson<T>(prefix: string): Promise<T | null> {
