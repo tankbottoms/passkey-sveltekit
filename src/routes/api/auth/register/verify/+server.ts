@@ -28,7 +28,10 @@ export const POST: RequestHandler = async ({ request, cookies, url }) => {
 			expectedRPID: rpID
 		});
 	} catch (err) {
-		console.error('Registration verification failed:', err);
+		log(url.hostname, 'error', `Enrollment verification failed: ${err instanceof Error ? err.message : 'unknown'}`, {
+			path: '/api/auth/register/verify',
+			metadata: { userId }
+		});
 		throw error(400, err instanceof Error ? err.message : 'Verification failed');
 	}
 
@@ -37,6 +40,10 @@ export const POST: RequestHandler = async ({ request, cookies, url }) => {
 	cookies.delete('webauthn_user_id', { path: '/' });
 
 	if (!verification.verified || !verification.registrationInfo) {
+		log(url.hostname, 'warn', `Enrollment verification rejected for user ${userId}`, {
+			path: '/api/auth/register/verify',
+			metadata: { userId }
+		});
 		return json({ verified: false });
 	}
 

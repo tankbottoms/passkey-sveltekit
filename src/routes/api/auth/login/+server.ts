@@ -3,9 +3,11 @@ import type { RequestHandler } from './$types';
 import { generateAuthenticationOptions } from '@simplewebauthn/server';
 import { dev } from '$app/environment';
 import { getAllCredentials } from '$lib/server/store.js';
+import { log } from '$lib/server/logger.js';
 
 export const POST: RequestHandler = async ({ cookies, url }) => {
 	const rpID = url.hostname;
+	log(rpID, 'info', 'Login attempt started', { path: '/api/auth/login' });
 
 	// Allow all enrolled credentials (discoverable)
 	const allCreds = getAllCredentials();
@@ -18,7 +20,7 @@ export const POST: RequestHandler = async ({ cookies, url }) => {
 		rpID,
 		allowCredentials: allCreds.map((c) => ({
 			id: c.id,
-			transports: c.transports as AuthenticatorTransport[]
+			transports: (c.transports.length > 0 ? c.transports : ['internal']) as AuthenticatorTransport[]
 		})),
 		userVerification: 'preferred'
 	});

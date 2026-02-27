@@ -1,11 +1,14 @@
 <script lang="ts">
 	import { startRegistration, startAuthentication } from '@simplewebauthn/browser';
+	import { trackEvent } from '$lib/event-logger';
 
 	let { data } = $props();
 
 	let username = $state('');
 	let status = $state<'idle' | 'loading' | 'success' | 'error'>('idle');
 	let statusMessage = $state('');
+	let gateUnlocked = $state(false);
+	let gatePassword = $state('');
 	let logLines = $state<Array<{ text: string; type: string }>>([]);
 	let credentials = $state<Array<{
 		id: string;
@@ -50,6 +53,7 @@
 			return;
 		}
 
+		trackEvent('enroll_click', { username: username.trim() });
 		status = 'loading';
 		clearLog();
 		log('Requesting registration options...', 'info');
@@ -81,6 +85,7 @@
 			const result = await verifyResp.json();
 
 			if (result.verified) {
+				trackEvent('enroll_success', { username: username.trim() });
 				log('Passkey registered successfully.', 'success');
 				status = 'success';
 				statusMessage = 'Passkey enrolled. Reloading...';
@@ -90,6 +95,7 @@
 			}
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : 'Registration failed';
+			trackEvent('enroll_error', { error: msg });
 			log(`Error: ${msg}`, 'error');
 			status = 'error';
 			statusMessage = msg;
@@ -97,6 +103,7 @@
 	}
 
 	async function handleLogin() {
+		trackEvent('auth_click');
 		status = 'loading';
 		clearLog();
 		log('Requesting authentication options...', 'info');
@@ -126,6 +133,7 @@
 			const result = await verifyResp.json();
 
 			if (result.verified) {
+				trackEvent('auth_success');
 				log('Authentication successful.', 'success');
 				status = 'success';
 				statusMessage = 'Authenticated. Reloading...';
@@ -135,6 +143,7 @@
 			}
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : 'Login failed';
+			trackEvent('auth_error', { error: msg });
 			log(`Error: ${msg}`, 'error');
 			status = 'error';
 			statusMessage = msg;
@@ -142,12 +151,14 @@
 	}
 
 	async function handleLogout() {
+		trackEvent('logout');
 		await fetch('/api/auth/logout', { method: 'POST' });
 		window.location.reload();
 	}
 
 	async function handleDeleteCredential(id: string) {
 		if (!confirm('Delete this passkey?')) return;
+		trackEvent('credential_delete', { credentialId: id });
 		try {
 			const resp = await fetch('/api/credentials', {
 				method: 'DELETE',
@@ -196,6 +207,21 @@
 					{status === 'loading' ? 'AUTHENTICATING...' : 'AUTHENTICATE'}
 				</button>
 
+				{#if !gateUnlocked}
+					<div class="register-section mt-lg">
+						<div class="input-row">
+							<input
+								type="password"
+								bind:value={gatePassword}
+								placeholder="enter password to enroll"
+								onkeydown={(e) => { if (e.key === 'Enter' && gatePassword === 'password') { trackEvent('enroll_gate_unlock'); gateUnlocked = true; } }}
+							/>
+							<button onclick={() => { if (gatePassword === 'password') { trackEvent('enroll_gate_unlock'); gateUnlocked = true; } }}>
+								UNLOCK
+							</button>
+						</div>
+					</div>
+				{:else}
 					<div class="register-section mt-lg">
 						<div class="panel">
 							<div class="panel-header">ENROLL NEW PASSKEY</div>
@@ -214,6 +240,7 @@
 							</div>
 						</div>
 					</div>
+				{/if}
 			</div>
 		</div>
 	{:else}
@@ -239,9 +266,7 @@
 									<th>ID</th>
 									<th>TYPE</th>
 									<th>CREATED</th>
-									{#if data.isDev}
-										<th></th>
-									{/if}
+									<th></th>
 								</tr>
 							</thead>
 							<tbody>
@@ -257,17 +282,15 @@
 											{/if}
 										</td>
 										<td class="text-xs text-muted">{formatDate(cred.createdAt)}</td>
-										{#if data.isDev}
-											<td>
-												<button
-													class="danger"
-													style="font-size:0.65rem;padding:0.2rem 0.4rem"
-													onclick={() => handleDeleteCredential(cred.id)}
-												>
-													DELETE
-												</button>
-											</td>
-										{/if}
+										<td>
+											<button
+												class="danger"
+												style="font-size:0.65rem;padding:0.2rem 0.4rem"
+												onclick={() => handleDeleteCredential(cred.id)}
+											>
+												DELETE
+											</button>
+										</td>
 									</tr>
 								{/each}
 							</tbody>

@@ -1,12 +1,19 @@
 <script lang="ts">
 	import '../app.css';
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { initTheme, toggleTheme, isDarkMode } from '$lib/theme.svelte';
+	import { initEventLogger, destroyEventLogger, trackEvent } from '$lib/event-logger';
 
 	let { children, data } = $props();
 
 	onMount(() => {
 		initTheme();
+		initEventLogger();
+		trackEvent('page_view', { path: location.pathname });
+	});
+
+	onDestroy(() => {
+		destroyEventLogger();
 	});
 </script>
 

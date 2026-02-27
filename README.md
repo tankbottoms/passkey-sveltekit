@@ -1,42 +1,105 @@
-# sv
+# Passkey Gate
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+Passwordless authentication using WebAuthn passkeys, built with SvelteKit. Supports deployment to both Vercel and Cloudflare Workers.
 
-## Creating a project
+**Live:**
+- Cloudflare: https://passkey-sveltekit.atsignhandle.workers.dev
+- Vercel: https://passkey-sveltekit.vercel.app
 
-If you're seeing this, you've probably already done this step. Congrats!
+## Features
 
-```sh
-# create a new project
-npx sv create my-app
-```
+- Passkey enrollment and authentication via WebAuthn
+- Cross-platform support (Touch ID, Face ID, Windows Hello, security keys)
+- Stateless session management (HMAC-signed cookies)
+- Centralized credential and log storage via Vercel Blob
+- Event logging for all auth actions (enrollment, login, logout, failures)
+- Dual deployment: Vercel + Cloudflare Workers from the same codebase
 
-To recreate this project with the same configuration:
+## Quick Start
 
-```sh
-# recreate this project
-npx sv create --template minimal --types ts --no-install /tmp/sveltekit-scaffold
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
+```bash
+npm install
 npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
 ```
 
-## Building
+Visit `https://localhost:5173` (HTTPS required for WebAuthn).
 
-To create a production version of your app:
+## Architecture
 
-```sh
-npm run build
+```
+Browser (WebAuthn)
+    |
+SvelteKit App (Vercel or Cloudflare Workers)
+    |
+Vercel Blob Store (users, credentials, logs)
 ```
 
-You can preview the production build with `npm run preview`.
+Both deployments share the same Vercel Blob backend. Passkeys enrolled on one deployment work on the other (when using the same domain).
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+## Deployment
+
+### Vercel
+
+Vercel auto-detects the SvelteKit adapter. Set these environment variables in the Vercel dashboard:
+
+- `BLOB_READ_WRITE_TOKEN` -- auto-linked when you create a Blob store
+- `SESSION_SECRET` -- production session signing secret
+
+```bash
+npm run build   # adapter-auto detects Vercel
+```
+
+### Cloudflare Workers
+
+Requires `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` in your shell environment.
+
+```bash
+CF_PAGES=1 npm run build
+npx wrangler deploy
+```
+
+Or use the convenience script:
+
+```bash
+npm run deploy:cloudflare
+```
+
+Set secrets once (they persist across deploys):
+
+```bash
+echo "token" | npx wrangler secret put BLOB_READ_WRITE_TOKEN
+echo "secret" | npx wrangler secret put SESSION_SECRET
+```
+
+See [docs/CLOUDFLARE_SETUP.md](docs/CLOUDFLARE_SETUP.md) for full setup instructions.
+
+### How Dual Deployment Works
+
+| Concern | Vercel | Cloudflare |
+|---------|--------|------------|
+| Adapter | `adapter-auto` detects `VERCEL=1` | `adapter-auto` detects `CF_PAGES=1` |
+| Runtime | Node.js | Workers with `nodejs_compat` v2 |
+| Env vars | `process.env` natively | `platform.env` bridged to `process.env` in hooks |
+| Config | N/A | `wrangler.toml` |
+| Secrets | Dashboard env vars | `npx wrangler secret put` |
+
+## Project Structure
+
+```
+src/
+  lib/server/
+    blob-store.ts    # Vercel Blob persistence (users, credentials, logs)
+    session.ts       # HMAC-signed cookie sessions
+    store.ts         # In-memory store with Blob sync
+    logger.ts        # Event logger -> Blob storage
+  routes/
+    +page.svelte     # Main passkey UI
+    api/auth/        # Registration, login, logout endpoints
+    api/credentials/ # Credential management
+    api/logs/        # Log viewer API
+    logs/            # Log dashboard
+```
+
+## License
+
+MIT

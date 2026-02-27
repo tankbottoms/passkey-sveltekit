@@ -39,13 +39,20 @@ export const POST: RequestHandler = async ({ request, cookies, url }) => {
 			credential: credentialData as any
 		});
 	} catch (err) {
-		console.error('Authentication verification failed:', err);
+		log(url.hostname, 'error', `Login verification failed: ${err instanceof Error ? err.message : 'unknown'}`, {
+			path: '/api/auth/login/verify',
+			metadata: { credentialId: body.id }
+		});
 		throw error(400, err instanceof Error ? err.message : 'Verification failed');
 	}
 
 	cookies.delete('webauthn_challenge', { path: '/' });
 
 	if (!verification.verified) {
+		log(url.hostname, 'warn', `Login verification rejected`, {
+			path: '/api/auth/login/verify',
+			metadata: { credentialId: body.id }
+		});
 		return json({ verified: false });
 	}
 

@@ -138,12 +138,19 @@
 								<span class="badge badge-{entry.level === 'error' ? 'error' : entry.level === 'warn' ? 'warning' : 'info'}">
 									{entry.level.toUpperCase()}
 								</span>
+								{#if entry.metadata?.source === 'client'}
+									<span class="badge badge-client">CLIENT</span>
+								{/if}
 								<span class="log-site">{entry.site}</span>
 								<span class="log-time">{formatTimestamp(entry.timestamp)}</span>
 							</div>
 							<div class="log-message">{entry.message}</div>
 							{#if entry.path}
 								<div class="log-meta">path: {entry.path}</div>
+							{/if}
+							{#if entry.metadata?.source === 'client' && entry.metadata?.device}
+								{@const d = entry.metadata.device as {browser:string;os:string;deviceType:string;screenSize:string}}
+								<div class="log-meta log-device">{d.browser} / {d.os} / {d.deviceType} / {d.screenSize}</div>
 							{/if}
 							{#if entry.metadata && Object.keys(entry.metadata).length > 0}
 								<div class="log-meta">{JSON.stringify(entry.metadata)}</div>
@@ -280,6 +287,17 @@
 		background: rgba(220, 53, 69, 0.15);
 		border-color: var(--color-error);
 		color: var(--color-error);
+	}
+
+	.badge-client {
+		background: rgba(108, 99, 255, 0.15);
+		border-color: #6c63ff;
+		color: #6c63ff;
+		font-size: 0.6rem;
+	}
+
+	.log-device {
+		font-style: italic;
 	}
 
 	.status-bar {
